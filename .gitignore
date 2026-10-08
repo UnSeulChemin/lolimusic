@@ -1,0 +1,67 @@
+# .NET : fichiers generes
+**/bin/
+**/obj/
+**/TestResults/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.nupkg
+*.snupkg
+
+# Editeurs et IDE
+.vs/
+.idea/
+.vscode/
+
+# Appli compilee et bibliotheque musicale locale
+/dist/
+/music/
+*.mp3
+*.m4a
+*.m4b
+*.flac
+*.wav
+*.aac
+*.wma
+*.aif
+*.aiff
+*.ogg
+*.opus
+
+# FFmpeg : conserver les licences et instructions, exclure les binaires
+/tools/*.exe
+/tools/*.dll
+/tools/*.zip
+/tools/*.7z
+
+# Parametres personnels et sauvegardes des reparations
+settings.json
+settings-before-*.json
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pfx
+*.p12
+*.key
+
+# Caches et dossiers temporaires de diagnostic
+.cache/
+/.audio-check/
+/.cover-check/
+/.cover-batch/
+/.image-check/
+/.thumbnail-check/
+/.rpc-check/
+/.ui-check/
+/.cover-audit.json
+*.log
+*.tmp
+*.temp
+*.bak
+
+# Fichiers Windows / macOS
+Thumbs.db
+Desktop.ini
+.DS_Store

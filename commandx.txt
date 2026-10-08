@@ -1,0 +1,79 @@
+=========================================
+COMMANDES DU PROJET
+=========================================
+
+Lancer l'appli depuis le code
+= dotnet run --project .\loli
+
+Arrêter l'appli lancée dans le terminal
+= Ctrl + C
+
+Compiler le projet pour vérifier que ça passe
+= dotnet build .\loli
+
+Créer / mettre à jour la version Release dans dist (ferme l'appli avant)
+= dotnet publish .\loli -c Release -o .\dist
+
+Ouvrir l'appli déjà compilée (dist existe déjà)
+= Start-Process .\dist\lolimusic.exe
+
+Ouvrir le dossier de l'exe pour le retrouver facilement
+= explorer .\dist
+
+Ouvrir ton dossier music, puis l'ajouter avec Importer dans l'appli
+= explorer .\music
+
+Ouvrir les paramètres sauvegardés de l'appli (après le premier lancement)
+= notepad "$env:LOCALAPPDATA\lolimusic\settings.json"
+
+Vérifier la version du SDK .NET installé
+= dotnet --version
+
+=========================================
+AJOUTER UNE POCHETTE À UNE MUSIQUE
+=========================================
+
+Récupérer l'identifiant de la vidéo : youtube.com/watch?v=bZuzakHtGeg
+= bZuzakHtGeg
+
+Ouvrir la miniature du titre dans ton navigateur (remplace l'identifiant pour une autre vidéo)
+= https://i.ytimg.com/vi/bZuzakHtGeg/hqdefault.jpg
+
+Enregistrer la miniature depuis la page de l'image
+= Clic droit sur l'image → Enregistrer l'image sous…
+
+Ouvrir Mp3tag et charger le morceau depuis le dossier music du projet : c'est la copie utilisée par lolimusic
+= Glisser le fichier .m4a de C:\Users\bende\Desktop\lolimusic\music dans Mp3tag
+
+Sélectionner le morceau, puis ajouter la miniature dans la zone de pochette
+= Cliquer sur le morceau → glisser l'image sur le carré avec le disque en bas à gauche
+
+Si besoin, renseigner le nom du titre et de l'artiste
+= Remplir les champs Titre et Interprète à gauche
+
+Enregistrer la pochette et les informations dans le fichier musical
+= Ctrl + S dans Mp3tag
+
+Mettre à jour les pochettes dans lolimusic
+= Menu ☰ → Actualiser la bibliothèque
+
+Une image simplement posée à côté du morceau ne suffit pas : elle doit être intégrée au fichier avec Mp3tag.
+
+=========================================
+MINIATURE DU TITRE SUR DISCORD
+=========================================
+
+Pochettes automatiques : option préparée, désactivée par défaut. Elle envoie la pochette intégrée au morceau vers Catbox (hébergement public), puis mémorise son URL pour Discord. Le fichier audio n'est pas envoyé. Désactiver l'option n'efface pas les images déjà hébergées.
+= Menu ☰ → Discord → Pochettes automatiques (hébergées publiquement sur Catbox)
+
+Discord utilise une image accessible en ligne. La pochette intégrée au M4A sert à l'affichage local ; renseigne son lien pour Discord.
+= Clic droit sur le titre dans lolimusic → Miniature Discord…
+
+Coller le lien YouTube du titre : lolimusic le transforme en lien de miniature (ou coller un lien HTTPS direct vers une image)
+= Coller le lien → Enregistrer
+
+Le lien est mémorisé pour ce morceau. Pour un album entier, le clic droit sur l'album applique la même image à tous ses titres.
+= Garder Discord ouvert → lancer la musique
+
+Retirer la miniature Discord d'un titre
+= Clic droit → Miniature Discord… → vider le champ → Enregistrer
