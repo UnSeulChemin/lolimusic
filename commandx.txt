@@ -66,14 +66,158 @@ MINIATURE DU TITRE SUR DISCORD
 Pochettes automatiques : option préparée, désactivée par défaut. Elle envoie la pochette intégrée au morceau vers Catbox (hébergement public), puis mémorise son URL pour Discord. Le fichier audio n'est pas envoyé. Désactiver l'option n'efface pas les images déjà hébergées.
 = Menu ☰ → Discord → Pochettes automatiques (hébergées publiquement sur Catbox)
 
-Discord utilise une image accessible en ligne. La pochette intégrée au M4A sert à l'affichage local ; renseigne son lien pour Discord.
+Discord utilise une image accessible en ligne. L'option automatique envoie la pochette intégrée ; sinon tu peux renseigner un lien manuellement.
 = Clic droit sur le titre dans lolimusic → Miniature Discord…
 
 Coller le lien YouTube du titre : lolimusic le transforme en lien de miniature (ou coller un lien HTTPS direct vers une image)
 = Coller le lien → Enregistrer
 
-Le lien est mémorisé pour ce morceau. Pour un album entier, le clic droit sur l'album applique la même image à tous ses titres.
+Le lien est mémorisé pour ce morceau et suit ses déplacements dans music après détection.
 = Garder Discord ouvert → lancer la musique
 
 Retirer la miniature Discord d'un titre
 = Clic droit → Miniature Discord… → vider le champ → Enregistrer
+
+=========================================
+PLAYLISTS ET DOSSIERS
+=========================================
+
+Créer une playlist et ajouter des morceaux
+= Playlists → + → ouvrir la playlist → icône note
+
+Renommer ou supprimer une playlist (les musiques sont conservées)
+= Clic droit sur sa pochette → Renommer ou Supprimer la playlist
+
+Accéder aux options depuis l'intérieur d'une playlist
+= Bouton ☰ à côté des actions de la playlist
+
+Changer l'ordre des playlists ou des morceaux à la souris
+= Réorganiser → glisser une pochette sur une autre → Terminer
+
+Ranger les musiques dans des sous-dossiers : elles restent dans leurs playlists après renommage ou déplacement dans music, une fois détectées par cette version
+= explorer .\music
+
+Actualiser manuellement si besoin (les changements sont aussi détectés automatiquement)
+= Menu ☰ → Actualiser la bibliothèque
+
+=========================================
+DISTRIBUTION ET RACCOURCI
+=========================================
+
+Créer la version autonome pour Windows 64 bits, avec .NET et FFmpeg (fermer lolimusic avant)
+= dotnet publish .\loli -c Release -r win-x64 --self-contained true -o .\release\lolimusic
+
+Créer le ZIP à partager après publication (aucune musique ni configuration personnelle)
+= Compress-Archive -Path .\release\lolimusic\* -DestinationPath .\release\lolimusic-win-x64.zip -Force
+
+Ouvrir le dossier de l'archive à partager
+= explorer .\release
+
+Créer un raccourci sur ton Bureau vers la version dist, sans déplacer les fichiers
+= Clic droit sur dist\lolimusic.exe → Afficher plus d'options → Envoyer vers → Bureau (créer un raccourci)
+
+Ouvrir les instructions du projet
+= notepad .\commandx.txt
+
+Lancer les vérifications des références de fichiers et des contrôles de l'interface
+= dotnet run --project .\tests\check.csproj -c Release
+
+=========================================
+ARRIERE-PLAN, CLAVIER ET REPRISE
+=========================================
+
+Fermer la fenêtre tout en gardant la musique en arrière-plan
+= Cliquer sur X ; l'icône lolimusic reste près de l'heure Windows (parfois sous ^)
+
+Rouvrir lolimusic
+= Cliquer sur son icône près de l'heure, ou relancer le raccourci Bureau
+
+Arrêter complètement l'application
+= Menu ☰ → Quitter lolimusic, ou clic droit sur l'icône près de l'heure → Quitter
+
+Contrôler la musique même quand la fenêtre est masquée
+= Touches multimédias du clavier : Lecture/Pause, Suivant, Précédent, Stop
+
+Retrouver la taille de fenêtre et le dernier morceau à sa position sauvegardée
+= Relancer lolimusic → Lecture pour reprendre (le morceau est préparé en pause)
+
+Fermer complètement avant de recompiler (la croix masque maintenant la fenêtre)
+= .\dist\lolimusic.exe --quit
+
+=========================================
+MODIFIER LES INFOS ET LA POCHETTE
+=========================================
+
+Changer le titre, l'artiste, l'album et la pochette dans le fichier musical
+= Clic droit sur un morceau → Modifier les infos et la pochette…
+
+Choisir une image PNG ou JPEG, ou retirer la pochette intégrée
+= Choisir une image… / Retirer la pochette → Enregistrer
+
+La version précédente du fichier reste sauvegardée localement, sans apparaître dans la bibliothèque
+= Dossier music\.cache\metadata-backups
+
+=========================================
+SAUVEGARDER LES PLAYLISTS
+=========================================
+
+Exporter les noms, l'ordre des playlists et leurs chemins (les musiques ne sont pas incluses)
+= Menu ☰ → Exporter les playlists… → choisir où enregistrer le JSON
+
+Restaurer les playlists sans remplacer celles qui existent (un numéro est ajouté aux noms identiques)
+= Menu ☰ → Importer des playlists… → choisir la sauvegarde JSON
+
+Sur un autre PC, copier aussi music en gardant la même structure de sous-dossiers
+= Copier le dossier music à côté de l'application, puis importer les playlists
+
+Naviguer entre les pochettes au clavier, dans les playlists et dans les titres
+= Tab pour activer la sélection de la première pochette → flèches ← ↑ → ↓ pour se déplacer
+
+Ouvrir la playlist ou lire le morceau sélectionné
+= Entrée (Début / Fin vont à la première / dernière pochette)
+
+Trouver les actions de sauvegarde des playlists
+= Menu ☰ en haut à droite → Exporter les playlists… / Importer des playlists…
+
+Annuler la navigation au clavier et retirer la sélection
+= Échap (un clic à la souris quitte aussi ce mode)
+
+Revenir à la liste des playlists depuis une playlist ouverte
+= Échap ; si une pochette est sélectionnée au clavier, le premier Échap annule la sélection et le second fait retour
+
+Garder le titre et sa miniature sur Discord pendant la pause, sans compteur de lecture
+= Pause → activité « En pause » ; reprendre → activité en lecture
+
+Retirer l'activité Discord en arrêtant complètement lolimusic (X masque seulement la fenêtre)
+= Menu ☰ → Quitter lolimusic, ou clic droit sur l'icône près de l'heure → Quitter
+
+Au lancement, le dernier morceau est préparé en pause sans activité Discord
+= Cliquer Lecture pour activer Discord ; les pauses suivantes gardent « En pause » jusqu'à Quitter
+
+=========================================
+IMPORT, SELECTION MULTIPLE ET FILE
+=========================================
+
+Importer des fichiers musicaux ou un dossier depuis l'Explorateur Windows
+= Glisser-déposer les fichiers / dossiers dans lolimusic (les originaux sont conservés)
+
+Choisir plusieurs titres sans lancer leur lecture
+= Sélectionner → cliquer les pochettes → Actions (N), ou clic droit sur une pochette sélectionnée
+
+Ajouter les titres choisis à une playlist, les retirer de la playlist ouverte ou les supprimer de la bibliothèque
+= Actions (N) → choisir l'action (supprimer les fichiers demande confirmation)
+
+Quitter la sélection multiple
+= Terminer la sélection, ou Échap après avoir quitté la navigation clavier
+
+Rechercher dans une playlist ouverte
+= Loupe en haut à gauche → saisir un titre, artiste ou album
+
+Filtrer les morceaux disponibles à ajouter à une playlist
+= Ajouter des titres → champ Rechercher → Tout cocher / décocher pour les résultats visibles → Ajouter la sélection
+
+Voir le morceau actuel et les suivants, ou choisir directement un titre à lire
+= Bouton File de lecture près des commandes aléatoire / répétition → cliquer un titre
+
+En aléatoire, le prochain morceau est choisi au hasard ; la file affiche les titres disponibles
+= Désactiver aléatoire pour suivre l'ordre affiché

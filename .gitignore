@@ -16,6 +16,7 @@
 
 # Appli compilee et bibliotheque musicale locale
 /dist/
+/release/
 /music/
 *.mp3
 *.m4a
