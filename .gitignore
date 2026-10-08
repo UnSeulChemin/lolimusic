@@ -37,6 +37,7 @@
 /tools/*.7z
 
 # Parametres personnels et sauvegardes des reparations
+/commandx.txt
 settings.json
 settings-before-*.json
 .env
