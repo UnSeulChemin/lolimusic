@@ -7,7 +7,7 @@ namespace Lolimusic;
 
 public sealed class VirtualCardPanel:Panel
 {
- const double CellWidth=224,CellHeight=274;
+ const double CellWidth=224,CellHeight=320;
  readonly List<Func<Button>> factories=[];
  readonly Dictionary<int,Button> realized=[];
  ScrollViewer? scroll;int columns=1;

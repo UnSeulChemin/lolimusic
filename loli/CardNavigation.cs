@@ -25,9 +25,10 @@ public partial class MusicWindow
  bool cardNavigationActive;
  void ConfigureCardNavigation(){
   AddHandler(KeyDownEvent,(_,e)=>{
-   if(e.Key==Key.Escape&&cardNavigationActive){CancelCardNavigation();e.Handled=true;return;}
-   if(e.Key==Key.Escape&&selectingTracks){ClearTrackSelection();Render();e.Handled=true;return;}
-   if(e.Key==Key.Escape&&section=="Playlists"&&selectedPlaylist!=null){selectedPlaylist=null;reordering=false;Render();e.Handled=true;return;}
+   if(e.Key==Key.Back&&e.Source is Control editing&&(editing is TextBox||editing.GetVisualAncestors().Any(c=>c is TextBox)))return;
+   if((e.Key is Key.Escape or Key.Back)&&cardNavigationActive){CancelCardNavigation();e.Handled=true;return;}
+   if((e.Key is Key.Escape or Key.Back)&&selectingTracks){ClearTrackSelection();Render();e.Handled=true;return;}
+   if((e.Key is Key.Escape or Key.Back)&&section=="Playlists"&&selectedPlaylist!=null){selectedPlaylist=null;reordering=false;Render();e.Handled=true;return;}
    if(e.Key!=Key.Tab||e.KeyModifiers is not (KeyModifiers.None or KeyModifiers.Shift))return;
    if(e.Source is Control source&&(source is TextBox or Slider||source.GetVisualAncestors().Any(c=>c is TextBox or Slider)))return;
    var visible=cards.Children.OfType<Button>().Where(c=>c.IsVisible).ToList();if(cards.Count==0)return;

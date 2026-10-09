@@ -5,6 +5,18 @@ using Lolimusic;
 using System.Reflection;
 
 void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("OK "+message);}
+if(args.Contains("--cover-smoke")){
+ AppBuilder.Configure<App>().UsePlatformDetect().SetupWithoutStarting();SynchronizationContext.SetSynchronizationContext(null);var cached=System.Text.Json.JsonSerializer.Deserialize<List<LibraryIndex.SavedEntry>>(File.ReadAllText(Path.Combine(Environment.CurrentDirectory,"music",".cache","library-index","index.json")))!;
+ foreach(var entry in cached.Where(e=>e.Path.Contains("嘻哈说唱"))){var original=File.ReadAllBytes(Path.Combine(Environment.CurrentDirectory,"music",".cache","library-index",entry.CoverHash+".cover"));var jpeg=await DiscordCoverEncoder.Encode(original);using var stream=new MemoryStream(jpeg);using var image=new Avalonia.Media.Imaging.Bitmap(stream);Check(image.PixelSize.Width<=384&&image.PixelSize.Height<=384&&jpeg.Length<original.Length,"Discord artwork is smaller and decodable: "+entry.Title+" ("+original.Length+" -> "+jpeg.Length+" bytes)");}return;
+}
+if(args.Contains("--netease-smoke")){
+ using var timeout=new CancellationTokenSource(TimeSpan.FromMinutes(2));var downloadRoot=Path.Combine(AppContext.BaseDirectory,"netease-smoke",Guid.NewGuid().ToString("N"));Directory.CreateDirectory(downloadRoot);var imported=await YouTubeImport.Download(args.Length>1?args[1]:"https://music.163.com/#/song?id=3397834659",downloadRoot,timeout.Token,true);using var downloaded=TagLib.File.Create(imported);Check(downloaded.Properties.Duration.TotalSeconds>1&&!string.IsNullOrWhiteSpace(downloaded.Tag.Title),"NetEase retrieves playable audio and title");Check(downloaded.Tag.Performers.Length>0&&downloaded.Tag.Pictures.Length>0,"NetEase embeds artists and artwork");return;
+}
+if(args.Contains("--youtube-smoke")){
+ using var timeout=new CancellationTokenSource(TimeSpan.FromMinutes(2));var downloadRoot=Path.Combine(AppContext.BaseDirectory,"youtube-smoke",Guid.NewGuid().ToString("N"));Directory.CreateDirectory(downloadRoot);
+ var imported=await YouTubeImport.Download("https://www.youtube.com/watch?v=bZuzakHtGeg",downloadRoot,timeout.Token);
+ using var downloaded=TagLib.File.Create(imported);Check(downloaded.Properties.Duration.TotalSeconds>1&&!string.IsNullOrWhiteSpace(downloaded.Tag.Title),"YouTube import retrieves playable audio and title");Check(downloaded.Tag.Pictures.Length>0,"YouTube import embeds the video thumbnail");return;
+}
 var root=Path.Combine(AppContext.BaseDirectory,"fixtures",Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
 var old=Path.Combine(root,"old.m4a");var moved=Path.Combine(root,"nested","renamed.m4a");File.WriteAllText(old,"fixture");
 var id=LibraryReferences.Identity(old);
@@ -121,6 +133,7 @@ var queuedLabels=queueRows.Children.OfType<Button>().Select(i=>i.Content?.ToStri
 Check(queuedLabels[0]!.Contains("B —")&&queuedLabels[1]!.Contains("C —")&&queuedLabels[2]!.Contains("A —"),"queue display starts with current track then follows playback order");
 Console.WriteLine("Import, search, selection, bulk-action and queue checks passed.");
 
+using(var multiArtistFile=TagLib.File.Create(wave)){multiArtistFile.Tag.Performers=["Premier", "Deuxième"];multiArtistFile.Save();}Check(new LibraryIndex().Scan(new[]{wave}).Tracks.Single().Artist=="Premier / Deuxième","library displays all artists");
 var indexCache=new LibraryIndex();var firstScan=indexCache.Scan(new[]{wave});var secondScan=indexCache.Scan(new[]{wave});
 Check(firstScan.Parsed==1&&secondScan.Parsed==0&&ReferenceEquals(firstScan.Tracks[0],secondScan.Tracks[0]),"unchanged audio reuses metadata and cover bytes");
 TrackMetadata.Save(wave,root,"New cached title","Test artist","Test album",picture,true);
@@ -182,6 +195,77 @@ pickerList.ItemsSource=new[]{pickerChoices[9999]};Avalonia.Threading.Dispatcher.
 Check(pickerList.GetVisualDescendants().OfType<CheckBox>().Single().IsChecked==true,"filtering preserves a selected unrealized track");
 pickerChoices[9999].Selected=false;Avalonia.Threading.Dispatcher.UIThread.RunJobs();Check(pickerList.GetVisualDescendants().OfType<CheckBox>().Single().IsChecked==false,"bulk selection updates realized checkbox bindings");pickerTestWindow.Close();
 Console.WriteLine("Persistent index, artwork memory, Discord and picker checks passed.");
+using(var requestedArtwork=System.Text.Json.JsonDocument.Parse("{\"assets\":{\"large_image\":\"https://files.catbox.moe/test.png\"}}")){
+ foreach(var replyJson in new[]{"{}","{\"data\":{\"assets\":{\"large_image\":null}}}","{\"data\":{\"assets\":{\"large_image\":\"\"}}}","{\"data\":{\"assets\":{\"large_image\":\"https://files.catbox.moe/test.png\"}}}"}){using var reply=System.Text.Json.JsonDocument.Parse(replyJson);Check(DiscordArtwork.Missing(requestedArtwork.RootElement,reply.RootElement),"missing, null, empty or unresolved artwork keeps retrying");}
+ using var resolved=System.Text.Json.JsonDocument.Parse("{\"data\":{\"assets\":{\"large_image\":\"mp:external/resolved/https/files.catbox.moe/test.png\"}}}");
+ Check(!DiscordArtwork.Missing(requestedArtwork.RootElement,resolved.RootElement),"resolved Discord artwork stops retries");
+ using var noArtwork=System.Text.Json.JsonDocument.Parse("null");Check(!DiscordArtwork.Missing(noArtwork.RootElement,resolved.RootElement),"cleared activity does not request artwork retry");
+}
+Check(DiscordArtwork.RetryDelay(1).TotalSeconds==2&&DiscordArtwork.RetryDelay(2).TotalSeconds==5&&DiscordArtwork.RetryDelay(3).TotalSeconds==10&&DiscordArtwork.RetryDelay(20).TotalSeconds==15,"artwork retries start quickly and remain bounded");
+SynchronizationContext.SetSynchronizationContext(null);var testPipeName="lolimusic-artwork-test-"+Guid.NewGuid().ToString("N");
+using(var server=new System.IO.Pipes.NamedPipeServerStream(testPipeName,System.IO.Pipes.PipeDirection.InOut,1,System.IO.Pipes.PipeTransmissionMode.Byte,System.IO.Pipes.PipeOptions.Asynchronous)){
+ Func<int,System.IO.Pipes.NamedPipeClientStream> factory=_=>new(".",testPipeName,System.IO.Pipes.PipeDirection.InOut,System.IO.Pipes.PipeOptions.Asynchronous);
+ var testRpc=Activator.CreateInstance(discordType,new object[]{"123456789012345678",factory})!;
+ var acceptedImage=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+ using var pipeTimeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));
+ async Task<System.Text.Json.JsonDocument> ReadFrame(){var header=new byte[8];await server.ReadExactlyAsync(header,pipeTimeout.Token);var payload=new byte[BitConverter.ToInt32(header,4)];await server.ReadExactlyAsync(payload,pipeTimeout.Token);return System.Text.Json.JsonDocument.Parse(payload);}
+ async Task ReplyFrame(object body){var payload=System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(body);var header=new byte[8];BitConverter.GetBytes(1).CopyTo(header,0);BitConverter.GetBytes(payload.Length).CopyTo(header,4);await server.WriteAsync(header,pipeTimeout.Token);await server.WriteAsync(payload,pipeTimeout.Token);}
+ var serverTask=Task.Run(async()=>{
+  await server.WaitForConnectionAsync(pipeTimeout.Token);using(var handshake=await ReadFrame())await ReplyFrame(new{evt="READY"});
+  using(var initial=await ReadFrame())await ReplyFrame(new{nonce=initial.RootElement.GetProperty("nonce").GetString(),data=new{assets=new{large_image=(string?)null}}});
+  var retryClock=System.Diagnostics.Stopwatch.StartNew();using(var retry=await ReadFrame()){
+   Check(retryClock.Elapsed.TotalSeconds>=1.8&&retryClock.Elapsed.TotalSeconds<5,"missing artwork retries over IPC after about two seconds");
+   await ReplyFrame(new{nonce=retry.RootElement.GetProperty("nonce").GetString(),data=new{assets=new{large_image="mp:external/resolved/image"}}});
+  }
+  acceptedImage.SetResult();var updateClock=System.Diagnostics.Stopwatch.StartNew();using(var updated=await ReadFrame()){
+   Check(updated.RootElement.GetProperty("args").GetProperty("activity").GetProperty("details").GetString()=="Next track"&&updateClock.Elapsed.TotalSeconds<2,"new track wakes Discord worker without waiting for retry interval");
+   await ReplyFrame(new{nonce=updated.RootElement.GetProperty("nonce").GetString(),data=new{assets=new{large_image="mp:external/resolved/next"}}});
+  }
+ });
+ try{
+  discordType.GetMethod("SetPresence")!.Invoke(testRpc,new object[]{new DiscordRPC.RichPresence{Details="First track",Assets=new DiscordRPC.Assets{LargeImageKey="https://files.catbox.moe/first.png"}}});discordType.GetMethod("Initialize")!.Invoke(testRpc,null);
+  await acceptedImage.Task.WaitAsync(pipeTimeout.Token);
+  discordType.GetMethod("SetPresence")!.Invoke(testRpc,new object[]{new DiscordRPC.RichPresence{Details="Next track",Assets=new DiscordRPC.Assets{LargeImageKey="https://files.catbox.moe/next.png"}}});
+  await serverTask;
+ }finally{((IDisposable)testRpc).Dispose();}
+}
+
+var buttonSettings=new Settings();var linkedTrack=new Track(wave,"Linked","Artist","Album",null);
+Check(YouTubeLinks.Buttons(buttonSettings,linkedTrack)==null,"YouTube button stays hidden without a source link");
+buttonSettings.YouTubeLinks[wave]="https://youtu.be/bZuzakHtGeg?t=30";
+var youtubeButtons=YouTubeLinks.Buttons(buttonSettings,linkedTrack)!;
+Check(youtubeButtons.Length==1&&youtubeButtons[0].Label=="Écouter sur YouTube"&&youtubeButtons[0].Url=="https://www.youtube.com/watch?v=bZuzakHtGeg","YouTube button opens the saved video's canonical URL");
+Check(YouTubeLinks.Normalize("https://files.catbox.moe/image.png")==null&&YouTubeLinks.Normalize("https://youtube.com.evil.example/watch?v=bZuzakHtGeg")==null&&YouTubeLinks.Normalize("https://youtube.com/watch?v=bad")==null,"image URLs, spoofed hosts and invalid video IDs cannot become listening buttons");
+Check(YouTubeLinks.Normalize("https://i.ytimg.com/vi/bZuzakHtGeg/hqdefault.jpg")==youtubeButtons[0].Url,"known YouTube thumbnail preserves the exact source video");
+var buttonPresence=new DiscordRPC.RichPresence{Details="Linked",Buttons=youtubeButtons};
+using(var buttonPayload=System.Text.Json.JsonDocument.Parse(Newtonsoft.Json.JsonConvert.SerializeObject(buttonPresence)))Check(buttonPayload.RootElement.GetProperty("buttons")[0].GetProperty("url").GetString()==youtubeButtons[0].Url,"Discord payload includes the clickable video URL");
+Check(YouTubeLinks.Buttons(buttonSettings,linkedTrack with{Path=wave+"other"})==null,"switching to an unlinked song removes the YouTube button");
+var movedButtonPath=wave+"renamed";LibraryReferences.Apply(buttonSettings,new Dictionary<string,string>{{wave,movedButtonPath}});
+Check(buttonSettings.YouTubeLinks.ContainsKey(movedButtonPath)&&!buttonSettings.YouTubeLinks.ContainsKey(wave),"YouTube source link follows renamed music files");
+buttonSettings.YouTubeLinks.Remove(movedButtonPath);Check(YouTubeLinks.Buttons(buttonSettings,linkedTrack with{Path=movedButtonPath})==null,"clearing a source link hides the button again");
+Console.WriteLine("Conditional YouTube button checks passed.");
+Check(NetEaseLinks.Normalize("https://music.163.com/#/song?id=123456")=="https://music.163.com/#/song?id=123456"&&NetEaseLinks.Normalize("https://y.music.163.com/m/song?id=123456&userid=777")=="https://music.163.com/#/song?id=123456","NetEase desktop and mobile song links normalize to the same song");
+Check(NetEaseLinks.Normalize("https://music.163.com/#/playlist?id=123456")==null&&NetEaseLinks.Normalize("https://music.163.com.evil.example/song?id=123456")==null&&NetEaseLinks.Normalize("https://music.163.com/song?id=0")==null,"NetEase buttons reject playlists, spoofed hosts and invalid song IDs");
+var neteaseSettings=new Settings();neteaseSettings.NetEaseLinks[wave]="https://music.163.com/song?id=123456";
+Check(YouTubeLinks.Buttons(neteaseSettings,linkedTrack) is [{Label:"Écouter sur NetEase"}],"NetEase-only song displays exactly one listening button");
+neteaseSettings.YouTubeLinks[wave]="https://youtu.be/bZuzakHtGeg";
+Check(YouTubeLinks.Buttons(neteaseSettings,linkedTrack) is [{Label:"Écouter sur NetEase"}],"legacy dual links display a single button in the same slot");
+LibraryReferences.Apply(neteaseSettings,new Dictionary<string,string>{{wave,movedButtonPath}});Check(neteaseSettings.NetEaseLinks.ContainsKey(movedButtonPath)&&!neteaseSettings.NetEaseLinks.ContainsKey(wave),"NetEase link follows renamed or moved music files");
+var linksRoundTrip=System.Text.Json.JsonSerializer.Deserialize<Settings>(System.Text.Json.JsonSerializer.Serialize(neteaseSettings))!;Check(linksRoundTrip.NetEaseLinks[movedButtonPath]==neteaseSettings.NetEaseLinks[movedButtonPath],"NetEase source links persist in settings");
+YouTubeLinks.Set(neteaseSettings,movedButtonPath,"https://www.youtube.com/watch?v=bZuzakHtGeg",false);Check(!neteaseSettings.NetEaseLinks.ContainsKey(movedButtonPath)&&neteaseSettings.YouTubeLinks.ContainsKey(movedButtonPath),"choosing YouTube replaces NetEase");
+YouTubeLinks.Set(neteaseSettings,movedButtonPath,"https://music.163.com/#/song?id=123456",true);Check(!neteaseSettings.YouTubeLinks.ContainsKey(movedButtonPath)&&YouTubeLinks.Buttons(neteaseSettings,linkedTrack with{Path=movedButtonPath}) is [{Label:"Écouter sur NetEase"}],"choosing NetEase replaces YouTube in the same Discord button slot");
+var actualNcm=Directory.EnumerateFiles(MusicWindow.MusicDirectory,"*.ncm",SearchOption.AllDirectories).FirstOrDefault(p=>!p.Contains(Path.DirectorySeparatorChar+".cache"+Path.DirectorySeparatorChar));
+if(actualNcm!=null){
+ var originalNcmHash=System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(actualNcm));var ncmOutput=Path.Combine(root,"ncm-converted");var converted=NcmImporter.Import(actualNcm,ncmOutput);
+ using(var convertedTags=TagLib.File.Create(converted.Path))Check(convertedTags.Properties.Duration.TotalSeconds>1&&!string.IsNullOrWhiteSpace(convertedTags.Tag.Title)&&convertedTags.Tag.Performers.Length>0&&convertedTags.Tag.Pictures.Length>0,"NCM import restores playable audio, title, artists and embedded cover");
+ using(var convertedAudio=new NAudio.Wave.AudioFileReader(converted.Path))Check(convertedAudio.Read(new byte[8192],0,8192)>0,"converted NCM decodes through the app's audio reader");
+ Check(originalNcmHash.SequenceEqual(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(actualNcm))),"NCM import leaves the original container unchanged");
+ Check(NetEaseLinks.Normalize(converted.NetEaseUrl)!=null,"NCM metadata restores the exact NetEase song link");
+ var convertedTime=File.GetLastWriteTimeUtc(converted.Path);var repeated=NcmImporter.Import(actualNcm,ncmOutput);Check(repeated==converted&&File.GetLastWriteTimeUtc(converted.Path)==convertedTime&&Directory.GetFiles(ncmOutput).Length==1,"repeated NCM import reuses the converted track without duplicates");
+ File.Delete(converted.Path);NcmImporter.Import(actualNcm,ncmOutput);Check(!File.Exists(converted.Path),"automatic scan does not resurrect a removed converted track");
+}
+var invalidNcm=Path.Combine(root,"invalid.ncm");File.WriteAllBytes(invalidNcm,"CTENFDAM\0\0\xff\xff\xff\xff"u8.ToArray());bool ncmRejected=false;try{NcmImporter.Import(invalidNcm,Path.Combine(root,"bad-ncm-output"));}catch(InvalidDataException){ncmRejected=true;}Check(ncmRejected,"NCM importer rejects oversized or truncated blocks without creating audio");
+Console.WriteLine("NCM import checks passed.");
 
 sealed class MemorySettings:Settings {
  public int Saves{get;private set;}

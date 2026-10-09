@@ -16,6 +16,7 @@ public partial class MusicWindow
   var panel=new StackPanel{Margin=new Thickness(24),Spacing=10};panel.Children.Add(Text("Infos et pochette",21));
   TextBox Field(string label,string value){panel.Children.Add(Text(label,12,"#BFB2D3"));var box=new TextBox{Text=value};panel.Children.Add(box);return box;}
   var name=Field("Titre",song.Title);var artist=Field("Artiste",song.Artist=="Artiste inconnu"?"":song.Artist);var album=Field("Album",song.Album=="Sans album"?"":song.Album);
+  var listeningLink=Field("Lien YouTube ou NetEase",prefs.NetEaseLinks.GetValueOrDefault(song.Path)??prefs.YouTubeLinks.GetValueOrDefault(song.Path)??"");
   byte[]? cover=song.Cover;bool changedCover=false;Bitmap? previewBitmap=null;
   var preview=new Image{Width=112,Height=112,Stretch=Stretch.Uniform,HorizontalAlignment=HorizontalAlignment.Left};
   void Preview(){preview.Source=null;previewBitmap?.Dispose();previewBitmap=null;if(cover!=null){using var stream=new MemoryStream(cover);previewBitmap=Bitmap.DecodeToWidth(stream,224);preview.Source=previewBitmap;}}
@@ -29,12 +30,13 @@ public partial class MusicWindow
   var actions=new StackPanel{Orientation=Orientation.Horizontal,Spacing=8};var save=Button("Enregistrer",()=>{});var cancel=Button("Annuler",()=>dialog.Close());actions.Children.Add(save);actions.Children.Add(cancel);panel.Children.Add(actions);
   save.Click+=async(_,_)=>{
    if(string.IsNullOrWhiteSpace(name.Text)){error.Text="Renseigne un titre.";return;}
+   var enteredLink=listeningLink.Text?.Trim()??"";var neteaseLink=NetEaseLinks.Normalize(enteredLink);var normalizedLink=neteaseLink??Lolimusic.YouTubeLinks.Normalize(enteredLink);if(enteredLink.Length>0&&normalizedLink==null){error.Text="Renseigne un lien YouTube ou NetEase valide.";return;}
    save.IsEnabled=cancel.IsEnabled=false;coverActions.IsEnabled=false;
    bool playing=output?.PlaybackState==PlaybackState.Playing;bool editingCurrent=current?.Path.Equals(song.Path,StringComparison.OrdinalIgnoreCase)==true;double position=audio?.CurrentTime.TotalSeconds??0;
    try{
     if(editingCurrent){playbackRequest++;output?.Stop();output?.Dispose();audio?.Dispose();output=null;audio=null;discord?.ClearPresence();}
     var titleValue=name.Text!;var artistValue=artist.Text??"";var albumValue=album.Text??"";
-    await Task.Run(()=>TrackMetadata.Save(song.Path,MusicDirectory,titleValue,artistValue,albumValue,cover,changedCover));await Reload();
+    await Task.Run(()=>TrackMetadata.Save(song.Path,MusicDirectory,titleValue,artistValue,albumValue,cover,changedCover));if(normalizedLink==null){prefs.YouTubeLinks.Remove(song.Path);prefs.NetEaseLinks.Remove(song.Path);}else Lolimusic.YouTubeLinks.Set(prefs,song.Path,normalizedLink,neteaseLink!=null);prefs.Save();await Reload();
     if(editingCurrent){var refreshed=tracks.FirstOrDefault(t=>t.Path.Equals(song.Path,StringComparison.OrdinalIgnoreCase));if(refreshed!=null)await StartTrack(refreshed,position,!playing);}
     status.Text="Infos et pochette enregistrées dans le fichier.";dialog.Close();
    }catch(Exception e){error.Text="Enregistrement impossible : "+e.Message;if(editingCurrent&&output==null)await StartTrack(song,position,!playing);}

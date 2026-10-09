@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="..\tools\yt-dlp.exe;..\tools\deno.exe;..\tools\yt-dlp-LICENSE.txt;..\tools\deno-LICENSE.txt" Link="tools\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <AvaloniaResource Include="Assets\lolimusic.png" />
     <Content Include="..\tools\ffmpeg.exe" Link="tools\ffmpeg.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\tools\FFmpeg-LICENSE.txt" Link="tools\FFmpeg-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

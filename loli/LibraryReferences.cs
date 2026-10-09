@@ -22,7 +22,7 @@ public static class LibraryReferences
   var mappings=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
   var present=new HashSet<string>(found.Keys,StringComparer.OrdinalIgnoreCase);
   var identities=found.GroupBy(p=>p.Value).ToDictionary(g=>g.Key,g=>g.Select(p=>p.Key).ToList());
-  var references=settings.Playlists.SelectMany(p=>p.Paths).Concat(settings.Favorites).Concat(settings.DiscordCovers.Keys).Concat(settings.FileIdentities.Keys).Concat(settings.LastQueue).Concat(settings.LastTrack==null?[]:new[]{settings.LastTrack}).Distinct(StringComparer.OrdinalIgnoreCase);
+  var references=settings.Playlists.SelectMany(p=>p.Paths).Concat(settings.Favorites).Concat(settings.DiscordCovers.Keys).Concat(settings.YouTubeLinks.Keys).Concat(settings.NetEaseLinks.Keys).Concat(settings.FileIdentities.Keys).Concat(settings.LastQueue).Concat(settings.LastTrack==null?[]:new[]{settings.LastTrack}).Distinct(StringComparer.OrdinalIgnoreCase);
   foreach(var old in references.Where(p=>!present.Contains(p))) {
    if(settings.FileIdentities.TryGetValue(old,out var id)&&identities.TryGetValue(id,out var candidates)&&candidates.Count==1)mappings[old]=candidates[0];
    else if(!settings.FileIdentities.ContainsKey(old)) {
@@ -41,7 +41,7 @@ public static class LibraryReferences
   settings.Favorites=settings.Favorites.Select(Map).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
   settings.LastQueue=settings.LastQueue.Select(Map).Distinct(StringComparer.OrdinalIgnoreCase).ToList();if(settings.LastTrack!=null)settings.LastTrack=Map(settings.LastTrack);
   foreach(var old in mappings.Keys.ToList()) {
-   if(settings.DiscordCovers.Remove(old,out var url))settings.DiscordCovers[Map(old)]=url;
+   if(settings.NetEaseLinks.Remove(old,out var netease))settings.NetEaseLinks[Map(old)]=netease;if(settings.YouTubeLinks.Remove(old,out var youtube))settings.YouTubeLinks[Map(old)]=youtube;if(settings.DiscordCovers.Remove(old,out var url))settings.DiscordCovers[Map(old)]=url;
    if(settings.FileIdentities.Remove(old,out var id))settings.FileIdentities[Map(old)]=id;
   }
  }

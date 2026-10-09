@@ -28,7 +28,7 @@ public partial class MusicWindow
   AddHandler(DragDrop.DragOverEvent,(_,e)=>{e.DragEffects=e.DataTransfer.TryGetFiles()?.Any()==true?DragDropEffects.Copy:DragDropEffects.None;e.Handled=true;});
   AddHandler(DragDrop.DropEvent,async(_,e)=>{
    e.Handled=true;var paths=e.DataTransfer.TryGetFiles()?.Select(f=>f.TryGetLocalPath()).OfType<string>().ToList();if(paths==null||paths.Count==0)return;
-   try{var files=await Task.Run(()=>LibraryImport.Files(paths,MusicExtensions).ToList());if(files.Count==0){status.Text="Aucun fichier audio compatible dans ce dépôt.";return;}status.Text="Import des fichiers déposés…";await CopyIntoLibrary(files);await Reload();status.Text=$"{files.Count} fichier(s) audio détecté(s), bibliothèque actualisée.";}catch(Exception error){status.Text="Import impossible : "+error.Message;}
+   try{var files=await Task.Run(()=>LibraryImport.Files(paths,ImportExtensions).ToList());if(files.Count==0){status.Text="Aucun fichier audio compatible dans ce dépôt.";return;}status.Text="Import des fichiers déposés…";await CopyIntoLibrary(files);await Reload();status.Text=$"{files.Count} fichier(s) audio détecté(s), bibliothèque actualisée.";}catch(Exception error){status.Text="Import impossible : "+error.Message;}
   });
  }
  Window? queueWindow;StackPanel? queueRows;
