@@ -30,10 +30,10 @@ public partial class MusicWindow
    if(e.Key==Key.Escape&&section=="Playlists"&&selectedPlaylist!=null){selectedPlaylist=null;reordering=false;Render();e.Handled=true;return;}
    if(e.Key!=Key.Tab||e.KeyModifiers is not (KeyModifiers.None or KeyModifiers.Shift))return;
    if(e.Source is Control source&&(source is TextBox or Slider||source.GetVisualAncestors().Any(c=>c is TextBox or Slider)))return;
-   var visible=cards.Children.OfType<Button>().Where(c=>c.IsVisible).ToList();if(visible.Count==0)return;
-   int index=visible.FindIndex(c=>c.IsKeyboardFocusWithin);
-   int target=!cardNavigationActive||index<0?(e.KeyModifiers==KeyModifiers.Shift?visible.Count-1:0):(index+(e.KeyModifiers==KeyModifiers.Shift?-1:1)+visible.Count)%visible.Count;
-   cardNavigationActive=true;e.Handled=true;visible[target].Focus(NavigationMethod.Tab);visible[target].BringIntoView();
+   var visible=cards.Children.OfType<Button>().Where(c=>c.IsVisible).ToList();if(cards.Count==0)return;
+   int index=visible.FirstOrDefault(c=>c.IsKeyboardFocusWithin) is Button focused?cards.IndexOf(focused):-1;
+   int target=!cardNavigationActive||index<0?(e.KeyModifiers==KeyModifiers.Shift?cards.Count-1:0):(index+(e.KeyModifiers==KeyModifiers.Shift?-1:1)+cards.Count)%cards.Count;
+   cardNavigationActive=true;e.Handled=true;cards.FocusIndex(target,NavigationMethod.Tab);
   },Avalonia.Interactivity.RoutingStrategies.Tunnel);
   AddHandler(PointerPressedEvent,(_,_)=>CancelCardNavigation(),Avalonia.Interactivity.RoutingStrategies.Tunnel);
  }
@@ -47,9 +47,9 @@ public partial class MusicWindow
   card.KeyDown+=(_,e)=>{
    if(e.KeyModifiers!=KeyModifiers.None||e.Key is not (Key.Left or Key.Right or Key.Up or Key.Down or Key.Home or Key.End))return;
    if(!cardNavigationActive){e.Handled=true;return;}
-   var visible=cards.Children.OfType<Button>().Where(c=>c.IsVisible).ToList();int index=visible.IndexOf(card);if(index<0)return;
-   int target=CardNavigation.Destination(visible.Select(c=>c.Bounds).ToList(),index,e.Key);e.Handled=true;
-   visible[target].Focus(NavigationMethod.Directional);visible[target].BringIntoView();
+   var visible=cards.Children.OfType<Button>().Where(c=>c.IsVisible).ToList();int index=cards.IndexOf(card);if(index<0)return;
+   int target=cards.Destination(index,e.Key);e.Handled=true;
+   cards.FocusIndex(target,NavigationMethod.Directional);
   };
  }
 }

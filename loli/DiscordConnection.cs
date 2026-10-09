@@ -19,8 +19,9 @@ internal sealed class DiscordConnection : IDisposable
  public event Action<string>? Error;
  public DiscordConnection(string id)=>applicationId=id;
  public void Initialize()=>_ = Run();
- public void SetPresence(RichPresence presence){lock(gate){activity=Newtonsoft.Json.JsonConvert.SerializeObject(presence);revision++;}}
- public void ClearPresence(){lock(gate){activity="null";revision++;}}
+ public void SetPresence(RichPresence presence)=>SetActivity(Newtonsoft.Json.JsonConvert.SerializeObject(presence));
+ public void ClearPresence()=>SetActivity("null");
+ void SetActivity(string desired){lock(gate){if(activity==desired)return;activity=desired;revision++;}}
  async Task Send(int operation,object body,CancellationToken token){
   var bytes=JsonSerializer.SerializeToUtf8Bytes(body);var header=new byte[8];BitConverter.GetBytes(operation).CopyTo(header,0);BitConverter.GetBytes(bytes.Length).CopyTo(header,4);
   await pipe!.WriteAsync(header,token);await pipe.WriteAsync(bytes,token);
@@ -44,10 +45,11 @@ internal sealed class DiscordConnection : IDisposable
     if(pipe==null)throw new IOException("Ouvre Discord sur ce PC.");
     await Send(0,new{v=1,client_id=applicationId},stop.Token);
     using(var timeout=CancellationTokenSource.CreateLinkedTokenSource(stop.Token)){timeout.CancelAfter(5000);using var response=await Receive(timeout.Token);if(!response.RootElement.TryGetProperty("evt",out var evt)||evt.GetString()!="READY")throw new IOException("Connexion Discord refusée.");}
-    Ready?.Invoke();long sent=-1;DateTime last=DateTime.MinValue;
+    Ready?.Invoke();long sent=-1;bool retryImage=false;DateTime last=DateTime.MinValue;
     while(!stop.IsCancellationRequested){
      string desired;long version;lock(gate){desired=activity;version=revision;}
-     if(version!=sent||DateTime.UtcNow-last>TimeSpan.FromSeconds(15)){
+     // A sparse heartbeat also detects a closed Discord pipe while playback is unchanged.
+     if(version!=sent||(retryImage&&DateTime.UtcNow-last>TimeSpan.FromSeconds(15))||DateTime.UtcNow-last>TimeSpan.FromMinutes(1)){
       using var timeout=CancellationTokenSource.CreateLinkedTokenSource(stop.Token);timeout.CancelAfter(5000);var nonce=Guid.NewGuid().ToString("N");
       await Send(1,new{cmd="SET_ACTIVITY",args=new{pid=Environment.ProcessId,activity=JsonSerializer.Deserialize<JsonElement>(desired)},nonce},timeout.Token);
       while(true){using var reply=await Receive(timeout.Token);var root=reply.RootElement;
@@ -55,10 +57,10 @@ internal sealed class DiscordConnection : IDisposable
        if(root.TryGetProperty("evt",out var evt)&&evt.GetString()=="ERROR")throw new IOException(root.GetProperty("data").GetProperty("message").GetString());
        bool missingImage=desired.Contains("large_image")&&(!root.TryGetProperty("data",out var data)||!data.TryGetProperty("assets",out var assets)||assets.ValueKind!=JsonValueKind.Object||!assets.TryGetProperty("large_image",out _));
        // Missing assets are a valid response: retry later without disrupting playback.
-       ActivityUpdated?.Invoke(!missingImage);sent=missingImage?-1:version;last=DateTime.UtcNow;break;
+       ActivityUpdated?.Invoke(!missingImage);retryImage=missingImage;sent=version;last=DateTime.UtcNow;break;
       }
      }
-     await Task.Delay(sent==-1?15000:1000,stop.Token);
+     await Task.Delay(1000,stop.Token);
     }
    }catch(Exception e){if(!stop.IsCancellationRequested)Error?.Invoke(e.Message);}
    finally{pipe?.Dispose();pipe=null;}
